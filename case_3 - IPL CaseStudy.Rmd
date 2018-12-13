@@ -1,0 +1,256 @@
+---
+title: 'Case Study : Indian Premier League'
+author: "Barun Kumar"
+output: html_document
+---
+
+#-------------------------------------------------------------------------
+```{r}
+
+library(readxl)
+library(dplyr)
+#Case Study IPL datasets
+#Datasets files : 6 files
+ball_by_ball <- read_excel("D:/DSML-M/SEM1/R Language/CSV files/IPL/Ball_by_Ball.xlsx")
+match_ipl <- read_excel("D:/DSML-M/SEM1/R Language/CSV files/IPL/Match.xlsx")
+player <- read_excel("D:/DSML-M/SEM1/R Language/CSV files/IPL/Player.xlsx")
+player_match <- read_excel("D:/DSML-M/SEM1/R Language/CSV files/IPL/Player_Match.xlsx")
+season <- read_excel("D:/DSML-M/SEM1/R Language/CSV files/IPL/Season.xlsx")
+team <- read_excel("D:/DSML-M/SEM1/R Language/CSV files/IPL/Team.xlsx")
+
+```
+
+
+1). Top 10 batsman
+
+
+1a) based on Runs scored.
+
+```{r}
+
+T <- merge(x = ball_by_ball[,c("Striker_Id","Batsman_Scored")], 
+          y = player[,c("Player_Id","Player_Name")], 
+          by.x = "Striker_Id",by.y = "Player_Id",all.x = TRUE)
+ 
+q1a_top10_run_scored <- T %>% group_by(Player_Name) %>% 
+       summarise(Total_Runs = sum(as.integer(Batsman_Scored),na.rm = T)) %>%
+       arrange(desc(Total_Runs)) %>% head(10)
+
+q1a_top10_run_scored
+
+```
+
+1b) based on Number of 6s
+
+```{r}
+
+q1b_top10_6s <- T %>% group_by(Player_Name) %>% 
+  summarise(Total_6s = sum(as.integer(Batsman_Scored == 6),na.rm = T)) %>%
+  arrange(desc(Total_6s)) %>% head(10)
+
+q1b_top10_6s
+
+```
+
+1c) based on Number of 4s  
+
+```{r}
+
+q1c_top10_4s <- T %>% group_by(Player_Name) %>% 
+      summarise(Total_4s = sum(as.integer(Batsman_Scored == 4),na.rm = T)) %>%
+      arrange(desc(Total_4s)) %>% head(10)
+
+q1c_top10_4s
+
+```
+
+1d) based on Number of 100s
+
+```{r}
+
+T100 <- merge(x = ball_by_ball[,c("Match_Id","Striker_Id","Batsman_Scored")], 
+          y = player[,c("Player_Id","Player_Name")], 
+          by.x = "Striker_Id",by.y = "Player_Id",all.x = TRUE)
+
+
+q1d_top10_100s <- T100 %>% group_by(Player_Name,Match_Id) %>% 
+   summarise(Total_Runs = sum(as.integer(Batsman_Scored),na.rm = T)) %>%
+   filter(Total_Runs > 99) %>% summarise(Total_Centuries = n()) %>%
+   arrange(desc(Total_Centuries)) %>% head(10)
+
+q1d_top10_100s
+
+```
+
+
+2). Top 10 teams
+
+ 
+2a) Based on number of matches won
+
+```{r}
+
+q2_a_m <- merge(x = match_ipl[,c("Match_Winner_Id")], y = team[,c("Team_Id","Team_Name")],
+             by.x = "Match_Winner_Id",by.y = "Team_Id",all.x = TRUE)
+q2_a <- q2_a_m %>% group_by(Team_Name) %>% summarise(Match_Won = n()) %>%
+      arrange(desc(Match_Won))
+
+q2_a
+
+```
+
+
+2b) Based on winning the toss and winning the match
+
+```{r}
+
+q2_b_m <- merge(x = match_ipl[,c("Toss_Winner_Id","Match_Winner_Id")], 
+                y = team[,c("Team_Id","Team_Name")],
+               by.x = "Match_Winner_Id",by.y = "Team_Id",all.x = TRUE)
+q2_b <- q2_b_m %>% group_by(Team_Name) %>% filter(Toss_Winner_Id == Match_Winner_Id) %>%
+       summarise(Win_Toss_Match = n()) %>% arrange(desc(Win_Toss_Match)) %>% head(10)
+
+q2_b
+
+```
+
+
+3). Season Wise Holder
+
+
+3a)	Orange Cap holder 
+
+
+```{r}
+
+q3_a_m <- merge(x = season[,c("Season_Year","Orange_Cap_Id")], 
+                y = player[,c("Player_Id","Player_Name")],
+                by.x = "Orange_Cap_Id",by.y = "Player_Id",all.x = TRUE)
+
+
+q3_a  <- q3_a_m %>% select(Season_Year,Player_Name) %>%
+         arrange(Season_Year)
+
+q3_a
+
+```
+
+
+
+#3b)	Purple Cap holder 
+
+```{r}
+
+q3_b_m <- merge(x = season[,c("Season_Year","Purple_Cap_Id")], 
+                y = player[,c("Player_Id","Player_Name")],
+                by.x = "Purple_Cap_Id",by.y = "Player_Id",all.x = TRUE)
+
+
+q3_b  <- q3_b_m %>% select(Season_Year,Player_Name) %>%
+  arrange(Season_Year)
+
+q3_b
+
+```
+
+
+
+
+4). For each season matches with biggest win margin based on runs.
+
+
+```{r}
+
+q4 <- match_ipl %>% filter(Win_Type == 'by runs') %>% group_by(Season_Id) %>% 
+      summarise(Biggest_Win_Margin = max(as.integer(Won_By),na.rm = TRUE)) 
+  
+  
+q4
+
+```
+
+
+
+5).	Total Number of : 
+
+
+5a) Matches
+
+
+```{r}
+
+q5_a <- match_ipl %>% summarise(no_of_matches = n_distinct(Match_Id))
+
+q5_a
+
+```
+
+
+
+5b). 100s
+
+
+```{r}
+
+q5_b <- T100 %>% group_by(Player_Name,Match_Id) %>% 
+  summarise(Total_Runs = sum(as.integer(Batsman_Scored),na.rm = T)) %>%
+  filter(Total_Runs > 99) %>% summarise(centuries_total = n()) %>%
+  summarise(Total_Centuries = sum(centuries_total))
+
+q5_b
+
+```
+
+
+5c) 50s
+
+```{r}
+
+q5_c <- T100 %>% group_by(Player_Name,Match_Id) %>% 
+  summarise(Total_Runs = sum(as.integer(Batsman_Scored),na.rm = T)) %>%
+  filter(Total_Runs > 49) %>% summarise(fifties_total = n()) %>%
+  summarise(Total_50s = sum(fifties_total))
+
+q5_c
+
+```
+
+
+5d) 6s
+
+
+```{r}
+
+q5_d <- sum(as.integer(ball_by_ball$Batsman_Scored == 6),na.rm = T)
+
+q5_d
+
+```
+
+
+
+5e) based on Number of 4s  
+
+```{r}
+
+q5_e <- sum(as.integer(ball_by_ball$Batsman_Scored == 4),na.rm = T)
+
+q5_e
+
+```
+
+
+
+6). Team wise count of title win
+
+```{r}
+
+q6 <- match_ipl %>% group_by(Season_Id) %>% filter(Match_Date == max(Match_Date)) %>%
+      summarise(Team_Won_Id = Match_Winner_Id) %>% group_by(Team_Won_Id) %>%
+      summarise(Title_Win_Count = n())
+
+
+q6
+
+```
+
